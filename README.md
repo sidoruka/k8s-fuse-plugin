@@ -1,34 +1,54 @@
-# FUSE device plugin for Kubernetes
+## Build
 
-This plugin allows the mount of a FUSE device without the need for escalating privileges. 
-
-## Usage
-
-### Deploy as Daemon Set:
-
+### Install Go
 ```
-kubectl create -f https://github.com/nextflow-io/k8s-fuse-plugin/raw/master/manifests/k8s-fuse-plugin.yml
+cd /usr/local
+wget https://go.dev/dl/go1.24.5.linux-amd64.tar.gz
+tar -zxvf go1.24.5.linux-amd64.tar.gz
+rm -f go1.24.5.linux-amd64.tar.gz
+export PATH=$PATH:/usr/local/go/bin
 ```
 
-### Deploy
+### Build Docker
+```
+cd /tmp
+git clone https://github.com/sidoruka/k8s-fuse-plugin
+cd k8s-fuse-plugin
+TARGET=amd64 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o k8s-fuse-plugin-linux-amd64
+docker build . -t quay.io/lifescience/cloud-pipeline:k8s-fuse-plugin-0.17
+docker push quay.io/lifescience/cloud-pipeline:k8s-fuse-plugin-0.17
+```
 
-Add resource limits to your pod:
+### Install
+```
+kubectl label no <node_name> CP_ENABLE_FUSE_DEVICE=true
+git clone https://github.com/sidoruka/k8s-fuse-plugin
+kubectl apply -f k8s-fuse-plugin/manifests/k8s-fuse-plugin.yml
+```
 
-```yaml
-spec: 
+### Example pod
+```
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fuse-pod
+spec:
+  restartPolicy: Never
   containers:
-  - ...
-    resources:
-      limits:
-        nextflow.io/fuse: 1
+    - name: cuda-container
+      image: rockylinux:8.7
+      command: ["sleep", "infinity"]
+      resources:
+        limits:
+          nvidia.com/gpu: 1
+          device/fuse: 1
+      securityContext:
+        capabilities:
+          add: ["SYS_ADMIN"]
+  tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
+EOF
 ```
-
-## Acknowledgements
-
-This project is based on this [FUSE device plugin](https://github.com/kuberenetes-learning-group/fuse-device-plugin)
-
-## Similar projects 
-
-* https://github.com/kuberenetes-learning-group/fuse-device-plugin
-* https://gitlab.com/arm-research/smarter/smarter-device-manager
-* https://github.com/squat/generic-device-plugin
