@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	resourceName = "nextflow.io/fuse"
+	resourceName = "device/fuse"
 	serverSock   = pluginapi.DevicePluginPath + "fuse.sock"
 )
 
