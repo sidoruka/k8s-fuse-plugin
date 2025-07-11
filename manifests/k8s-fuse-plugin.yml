@@ -27,7 +27,7 @@ spec:
         volumeMounts:
           - name: device-plugin
             mountPath: /var/lib/kubelet/device-plugins
-         imagePullPolicy: Always
+        imagePullPolicy: Always
       volumes:
         - name: device-plugin
           hostPath:
